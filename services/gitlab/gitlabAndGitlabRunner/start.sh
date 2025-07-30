@@ -162,13 +162,13 @@ else
     exit 1
 fi
 
-# Write .env file for docker-compose
-# cat > .env <<EOF
-# GITLAB_HOME="$GITLAB_HOME"
-# GITLAB_RUNNER_HOME="$GITLAB_RUNNER_HOME"
-# HOST_IP="$HOST_IP"
-# GITLAB_PORT="$GITLAB_PORT"
-# EOF
+Write .env file for docker-compose
+cat > .env <<EOF
+GITLAB_HOME="$GITLAB_HOME"
+GITLAB_RUNNER_HOME="$GITLAB_RUNNER_HOME"
+HOST_IP="$HOST_IP"
+GITLAB_PORT="$GITLAB_PORT"
+EOF
 
 print_message "🚀 Bringing up the Docker Compose stack..." "$YELLOW"
 $COMPOSE_CMD up -d
