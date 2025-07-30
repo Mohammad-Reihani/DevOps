@@ -27,10 +27,11 @@ fi
 INVOKING_HOME=$(eval echo ~${INVOKING_USER})
 BASHRC_FILE="$INVOKING_HOME/.bashrc"
 
+
 # Load env vars from invoking user's bashrc if running as root
 if [ "$EUID" -eq 0 ] && [ -f "$BASHRC_FILE" ]; then
     set -a
-    source "$BASHRC_FILE"
+    . "$BASHRC_FILE"
     set +a
 fi
 
@@ -62,28 +63,30 @@ else
 fi
 echo -e "\033[1;33m[INFO]\033[0m Using HOST_IP: $HOST_IP"
 
-missing_env=()
-added_env=()
+
+# POSIX-compatible env check and append
+MISSING_ENV=""
+ADDED_ENV=""
 
 append_if_missing() {
-    local var_name=$1
-    local var_value=$2
-    if ! grep -q "^export $var_name=" "$BASHRC_FILE"; then
-        echo "export $var_name=$var_value" >> "$BASHRC_FILE"
-        added_env+=("$var_name")
+    VAR_NAME="$1"
+    VAR_VALUE="$2"
+    if ! grep -q "^export $VAR_NAME=" "$BASHRC_FILE"; then
+        echo "export $VAR_NAME=$VAR_VALUE" >> "$BASHRC_FILE"
+        ADDED_ENV="$ADDED_ENV $VAR_NAME"
     fi
 }
 
-[ -z "$GITLAB_HOME" ] && missing_env+=("GITLAB_HOME")
-[ -z "$GITLAB_RUNNER_HOME" ] && missing_env+=("GITLAB_RUNNER_HOME")
-[ -z "$HOST_IP" ] && missing_env+=("HOST_IP")
-[ -z "$GITLAB_PORT" ] && missing_env+=("GITLAB_PORT")
+[ -z "$GITLAB_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_HOME"
+[ -z "$GITLAB_RUNNER_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_RUNNER_HOME"
+[ -z "$HOST_IP" ] && MISSING_ENV="$MISSING_ENV HOST_IP"
+[ -z "$GITLAB_PORT" ] && MISSING_ENV="$MISSING_ENV GITLAB_PORT"
 
-if [ ${#missing_env[@]} -ne 0 ]; then
-    echo -e "\033[1;33m[INFO]\033[0m The following environment variables are not set: ${missing_env[*]}"
+if [ -n "$MISSING_ENV" ]; then
+    echo -e "\033[1;33m[INFO]\033[0m The following environment variables are not set: $MISSING_ENV"
     echo -e "\033[1;33m[INFO]\033[0m Adding missing variables to $BASHRC_FILE..."
-    for var in "${missing_env[@]}"; do
-        case "$var" in
+    for VAR in $MISSING_ENV; do
+        case "$VAR" in
             GITLAB_HOME)
                 append_if_missing "GITLAB_HOME" "/srv/gitlab"
                 export GITLAB_HOME="/srv/gitlab"
@@ -93,9 +96,8 @@ if [ ${#missing_env[@]} -ne 0 ]; then
                 export GITLAB_RUNNER_HOME="/srv/gitlab-runner"
                 ;;
             HOST_IP)
-                HOST_IP_VAL="$(hostname -I | awk '{print $1}')"
-                append_if_missing "HOST_IP" "$HOST_IP_VAL"
-                export HOST_IP="$HOST_IP_VAL"
+                append_if_missing "HOST_IP" "$HOST_IP"
+                export HOST_IP="$HOST_IP"
                 ;;
             GITLAB_PORT)
                 append_if_missing "GITLAB_PORT" "$GITLAB_PORT"
@@ -103,8 +105,8 @@ if [ ${#missing_env[@]} -ne 0 ]; then
                 ;;
         esac
     done
-    if [ ${#added_env[@]} -ne 0 ]; then
-        echo -e "\033[0;32m[OK]\033[0m Added: ${added_env[*]} to $BASHRC_FILE."
+    if [ -n "$ADDED_ENV" ]; then
+        echo -e "\033[0;32m[OK]\033[0m Added:$ADDED_ENV to $BASHRC_FILE."
         echo -e "\033[1;33m[INFO]\033[0m Exported missing variables for this session. Continuing..."
     else
         echo -e "\033[1;33m[INFO]\033[0m No new variables were added. Please check $BASHRC_FILE."
