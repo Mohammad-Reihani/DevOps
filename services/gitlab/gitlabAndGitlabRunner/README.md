@@ -10,6 +10,8 @@ Make sure you have docker installed. if you're using new ones, you should change
 
 ## 2. Define Env vars
 
+> Note : In recent versions of `start.sh`, the script will set these automatically so you do not need to do this step manually any more!😎
+
 define these in `~/.bashrc`:
 
 ```bash
@@ -17,6 +19,7 @@ define these in `~/.bashrc`:
 export GITLAB_HOME=/srv/gitlab
 export GITLAB_RUNNER_HOME=/srv/gitlab-runner
 export HOST_IP=$(hostname -I | awk '{print $1}')  # gets first non-loopback IP
+export GITLAB_PORT=8998 # or any port you want
 ```
 
 If these variables are not set, the `start.sh` script will check for these create them, BUT, if the script does that you should either do `source ~/.bashrc` and rerun the script or open a new terminal and run the script.
@@ -33,17 +36,7 @@ If you look into the `docker-compose` there is a `patch-runner` its a lightweigh
 
 ## 4. register the gitlab runner
 
-```bash
-docker exec -it gitlab-runner gitlab-runner register
-```
-
-NOTE: gitlab address should be this when it asks you, also get the registration token via:
-
-```bash
-Enter the GitLab instance URL:  http://gitlab:8998/
-
-Enter the registration token: Get it from GitLab → Admin → CI/CD → Runners
-```
+First you need to login to your gitlab instance for the first time as root and `copy` the `registration token` found in `GitLab → Admin → CI/CD → Runners` on top right
 
 Note: default password for gitlab is in:
 
@@ -58,6 +51,20 @@ or more precisely:
 
 ```bash
 cat $GITLAB_HOME/config/initial_root_password
+```
+
+Then you should do:
+
+```bash
+docker exec -it gitlab-runner gitlab-runner register
+```
+
+NOTE: gitlab address should be this when it asks you, also get the registration token via:
+
+```bash
+Enter the GitLab instance URL:  http://gitlab:8998/
+
+Enter the registration token: Get it from GitLab → Admin → CI/CD → Runners
 ```
 
 ## 5. Load any custom image to build your app
