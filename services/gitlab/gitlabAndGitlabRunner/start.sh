@@ -95,7 +95,7 @@ append_or_update_bashrc() {
 [ -z "$GITLAB_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_HOME"
 [ -z "$GITLAB_RUNNER_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_RUNNER_HOME"
 [ -z "$HOST_IP" ] && MISSING_ENV="$MISSING_ENV HOST_IP"
-[ -z "$GITLAB_PORT" ] && MISSING_ENV="$MISSING_ENV GITLAB_PORT"
+MISSING_ENV="$MISSING_ENV GITLAB_PORT" # Always write GITLAB_PORT
 
 if [ -n "$MISSING_ENV" ]; then
     echo -e "\033[1;33m[INFO]\033[0m The following environment variables are not set: $MISSING_ENV"
