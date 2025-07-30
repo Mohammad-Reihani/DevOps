@@ -18,17 +18,31 @@
 # This script will now check if these variables are set and guide you if not.
 # =============================================================
 
-# Check for required environment variables and add them to ~/.bashrc if missing
+# Detect the invoking user's home and bashrc
+if [ "$SUDO_USER" ]; then
+    INVOKING_USER="$SUDO_USER"
+else
+    INVOKING_USER="$USER"
+fi
+INVOKING_HOME=$(eval echo ~${INVOKING_USER})
+BASHRC_FILE="$INVOKING_HOME/.bashrc"
+
+# Load env vars from invoking user's bashrc if running as root
+if [ "$EUID" -eq 0 ] && [ -f "$BASHRC_FILE" ]; then
+    set -a
+    source "$BASHRC_FILE"
+    set +a
+fi
+
+# Check for required environment variables and add them to invoking user's ~/.bashrc if missing
 missing_env=()
 added_env=()
 
-# Helper to append to bashrc if not present
 append_if_missing() {
     local var_name=$1
     local var_value=$2
-    local bashrc=~/.bashrc
-    if ! grep -q "^export $var_name=" "$bashrc"; then
-        echo "export $var_name=$var_value" >> "$bashrc"
+    if ! grep -q "^export $var_name=" "$BASHRC_FILE"; then
+        echo "export $var_name=$var_value" >> "$BASHRC_FILE"
         added_env+=("$var_name")
     fi
 }
@@ -39,27 +53,31 @@ append_if_missing() {
 
 if [ ${#missing_env[@]} -ne 0 ]; then
     echo -e "\033[1;33m[INFO]\033[0m The following environment variables are not set: ${missing_env[*]}"
-    echo -e "\033[1;33m[INFO]\033[0m Adding missing variables to your ~/.bashrc..."
+    echo -e "\033[1;33m[INFO]\033[0m Adding missing variables to $BASHRC_FILE..."
     for var in "${missing_env[@]}"; do
         case "$var" in
             GITLAB_HOME)
                 append_if_missing "GITLAB_HOME" "/srv/gitlab"
+                export GITLAB_HOME="/srv/gitlab"
                 ;;
             GITLAB_RUNNER_HOME)
                 append_if_missing "GITLAB_RUNNER_HOME" "/srv/gitlab-runner"
+                export GITLAB_RUNNER_HOME="/srv/gitlab-runner"
                 ;;
             HOST_IP)
-                append_if_missing "HOST_IP" "$(hostname -I | awk '{print $1}')"
+                HOST_IP_VAL="$(hostname -I | awk '{print $1}')"
+                append_if_missing "HOST_IP" "$HOST_IP_VAL"
+                export HOST_IP="$HOST_IP_VAL"
                 ;;
         esac
     done
     if [ ${#added_env[@]} -ne 0 ]; then
-        echo -e "\033[0;32m[OK]\033[0m Added: ${added_env[*]} to ~/.bashrc."
-        echo -e "\033[1;33m[INFO]\033[0m Please run: `source ~/.bashrc`, OR restart your terminal then re-run this script."
+        echo -e "\033[0;32m[OK]\033[0m Added: ${added_env[*]} to $BASHRC_FILE."
+        echo -e "\033[1;33m[INFO]\033[0m Exported missing variables for this session. Continuing..."
     else
-        echo -e "\033[1;33m[INFO]\033[0m No new variables were added. Please check your ~/.bashrc."
+        echo -e "\033[1;33m[INFO]\033[0m No new variables were added. Please check $BASHRC_FILE."
     fi
-    exit 1
+    # Continue script without exit since we exported variables for this session
 else
     echo -e "\033[0;32m[OK]\033[0m All required environment variables are set."
 fi
