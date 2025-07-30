@@ -174,7 +174,7 @@ else
 fi
 
 
-# Write .env file for docker-compose
+# Write .env file for docker-compose THIS IS NOT NEEDED ANYMORE BUT WE ARE DOING IT JUST IN CASE...
 cat > .env <<EOF
 GITLAB_HOME=$GITLAB_HOME
 GITLAB_RUNNER_HOME=$GITLAB_RUNNER_HOME
