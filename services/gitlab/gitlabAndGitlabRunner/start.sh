@@ -78,6 +78,14 @@ print_message() {
     echo -e "${color}${message}${RESET}"
 }
 
+
+# Require root privileges
+if [ "$EUID" -ne 0 ]; then
+    echo -e "\033[0;31m[ERROR]\033[0m This script must be run as root."
+    echo -e "\033[1;33m[INFO]\033[0m Please run: sudo $0"
+    exit 1
+fi
+
 # Check if the network exists
 if ! docker network ls --format '{{.Name}}' | grep -q "^${NETWORK_NAME}$"; then
     print_message "🔧 Creating Docker network: $NETWORK_NAME" "$YELLOW"
@@ -92,9 +100,19 @@ else
     print_message "✅ Docker network '$NETWORK_NAME' already exists." "$GREEN"
 fi
 
+# Detect which compose command to use
+if command -v docker-compose &>/dev/null; then
+    COMPOSE_CMD="docker-compose"
+elif docker compose version &>/dev/null; then
+    COMPOSE_CMD="docker compose"
+else
+    print_message "❌ Neither 'docker-compose' nor 'docker compose' is available. Please install Docker Compose." "$RED"
+    exit 1
+fi
+
 # Start the Compose stack
 print_message "🚀 Bringing up the Docker Compose stack..." "$YELLOW"
-docker-compose up -d
+$COMPOSE_CMD up -d
 if [[ $? -eq 0 ]]; then
     print_message "✅ Docker Compose stack is up and running." "$GREEN"
 else
