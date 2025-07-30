@@ -7,12 +7,12 @@ if [ -z "$BASH_VERSION" ]; then exec bash "$0" "$@"; fi
 # Please ensure the following environment variables are defined in your ~/.bashrc file:
 #
 #   # Gitlab Related
-#   export GITLAB_HOME=/srv/gitlab
-#   export GITLAB_RUNNER_HOME=/srv/gitlab-runner
+#   export GITLAB_HOME=/opt/gitlab
+#   export GITLAB_RUNNER_HOME=/opt/gitlab-runner
 #   export HOST_IP=$(hostname -I | awk '{print $1}')  # gets first non-loopback IP
 #
 # To add them, run:
-#   echo -e '\n# Gitlab Related\nexport GITLAB_HOME=/srv/gitlab\nexport GITLAB_RUNNER_HOME=/srv/gitlab-runner\nexport HOST_IP=$(hostname -I | awk '{print $1}')' >> ~/.bashrc
+#   echo -e '\n# Gitlab Related\nexport GITLAB_HOME=/opt/gitlab\nexport GITLAB_RUNNER_HOME=/opt/gitlab-runner\nexport HOST_IP=$(hostname -I | awk '{print $1}')' >> ~/.bashrc
 #   source ~/.bashrc
 #
 # This script will now check if these variables are set and guide you if not.
@@ -103,10 +103,10 @@ if [ -n "$MISSING_ENV" ]; then
     for VAR in $MISSING_ENV; do
         case "$VAR" in
             GITLAB_HOME)
-                append_or_update_bashrc "GITLAB_HOME" "${GITLAB_HOME:-/srv/gitlab}"
+                append_or_update_bashrc "GITLAB_HOME" "${GITLAB_HOME:-/opt/gitlab}"
                 ;;
             GITLAB_RUNNER_HOME)
-                append_or_update_bashrc "GITLAB_RUNNER_HOME" "${GITLAB_RUNNER_HOME:-/srv/gitlab-runner}"
+                append_or_update_bashrc "GITLAB_RUNNER_HOME" "${GITLAB_RUNNER_HOME:-/opt/gitlab-runner}"
                 ;;
             HOST_IP)
                 append_or_update_bashrc "HOST_IP" "$HOST_IP"
