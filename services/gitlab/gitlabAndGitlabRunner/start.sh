@@ -34,7 +34,34 @@ if [ "$EUID" -eq 0 ] && [ -f "$BASHRC_FILE" ]; then
     set +a
 fi
 
-# Check for required environment variables and add them to invoking user's ~/.bashrc if missing
+
+
+# Prompt for GITLAB_PORT if not set
+DEFAULT_GITLAB_PORT=8998
+if [ -z "$GITLAB_PORT" ]; then
+    read -p "Enter the port you want GitLab to use (default: $DEFAULT_GITLAB_PORT): " USER_PORT
+    if [ -z "$USER_PORT" ]; then
+        GITLAB_PORT=$DEFAULT_GITLAB_PORT
+    else
+        GITLAB_PORT=$USER_PORT
+    fi
+    echo -e "\033[1;33m[INFO]\033[0m Using GitLab port: $GITLAB_PORT"
+fi
+
+# Prompt for HOST_IP if not set or to confirm/change
+if [ -z "$HOST_IP" ]; then
+    DETECTED_HOST_IP=$(hostname -I | awk '{print $1}')
+else
+    DETECTED_HOST_IP="$HOST_IP"
+fi
+read -p "Detected HOST_IP is '$DETECTED_HOST_IP'. Press Enter to accept or enter a new value: " USER_HOST_IP
+if [ -z "$USER_HOST_IP" ]; then
+    HOST_IP="$DETECTED_HOST_IP"
+else
+    HOST_IP="$USER_HOST_IP"
+fi
+echo -e "\033[1;33m[INFO]\033[0m Using HOST_IP: $HOST_IP"
+
 missing_env=()
 added_env=()
 
@@ -50,6 +77,7 @@ append_if_missing() {
 [ -z "$GITLAB_HOME" ] && missing_env+=("GITLAB_HOME")
 [ -z "$GITLAB_RUNNER_HOME" ] && missing_env+=("GITLAB_RUNNER_HOME")
 [ -z "$HOST_IP" ] && missing_env+=("HOST_IP")
+[ -z "$GITLAB_PORT" ] && missing_env+=("GITLAB_PORT")
 
 if [ ${#missing_env[@]} -ne 0 ]; then
     echo -e "\033[1;33m[INFO]\033[0m The following environment variables are not set: ${missing_env[*]}"
@@ -68,6 +96,10 @@ if [ ${#missing_env[@]} -ne 0 ]; then
                 HOST_IP_VAL="$(hostname -I | awk '{print $1}')"
                 append_if_missing "HOST_IP" "$HOST_IP_VAL"
                 export HOST_IP="$HOST_IP_VAL"
+                ;;
+            GITLAB_PORT)
+                append_if_missing "GITLAB_PORT" "$GITLAB_PORT"
+                export GITLAB_PORT="$GITLAB_PORT"
                 ;;
         esac
     done

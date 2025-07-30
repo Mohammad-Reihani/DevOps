@@ -6,10 +6,10 @@ services:
     hostname: "gitlab.local"
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://<IP_ADDRESS>:<PORT>' # Replace <IP_ADDRESS> and <PORT> with actual values OR if you have a domain, use 'http://your-domain.com'
+        external_url 'http://${HOST_IP}:${GITLAB_PORT}' # Set by start.sh or .env
         gitlab_rails['gitlab_shell_ssh_port'] = 2222
     ports:
-      - "8998:8998"
+      - "${GITLAB_PORT}:${GITLAB_PORT}" # Set by start.sh or .env
       - "4430:443"
       - "2222:22"
     volumes:
