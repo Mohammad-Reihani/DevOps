@@ -1,5 +1,6 @@
 
 #!/bin/bash
+if [ -z "$BASH_VERSION" ]; then exec bash "$0" "$@"; fi
 
 # =============================================================
 # Step 2. Define Environment Variables
