@@ -6,7 +6,7 @@ services:
     hostname: "gitlab.local"
     environment:
       GITLAB_OMNIBUS_CONFIG: |
-        external_url 'http://${HOST_IP}:${GITLAB_PORT}' # Set by start.sh or .env
+        external_url 'http://$HOST_IP:$GITLAB_PORT' # Set by start.sh or .env
         gitlab_rails['gitlab_shell_ssh_port'] = 2222
     ports:
       - "${GITLAB_PORT}:${GITLAB_PORT}" # Set by start.sh or .env
@@ -52,7 +52,7 @@ services:
     volumes:
       - "${GITLAB_RUNNER_HOME}/config:/etc/gitlab-runner"
     entrypoint: ["sh", "-c"]
-    command: |
+    command: -c |
       echo "🔧 Patching config.toml...";
       export CONFIG=/etc/gitlab-runner/config.toml
 

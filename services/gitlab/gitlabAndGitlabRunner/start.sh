@@ -1,4 +1,3 @@
-
 #!/bin/bash
 if [ -z "$BASH_VERSION" ]; then exec bash "$0" "$@"; fi
 
@@ -69,13 +68,19 @@ echo -e "\033[1;33m[INFO]\033[0m Using HOST_IP: $HOST_IP"
 MISSING_ENV=""
 ADDED_ENV=""
 
-append_if_missing() {
+
+# Ensure export in ~/.bashrc (update if exists, append if not)
+append_or_update_bashrc() {
     VAR_NAME="$1"
     VAR_VALUE="$2"
-    if ! grep -q "^export $VAR_NAME=" "$BASHRC_FILE"; then
-        echo "export $VAR_NAME=$VAR_VALUE" >> "$BASHRC_FILE"
+    if grep -q "^export $VAR_NAME=" "$BASHRC_FILE"; then
+        # Update existing
+        sed -i "s|^export $VAR_NAME=.*|export $VAR_NAME=\"$VAR_VALUE\"|" "$BASHRC_FILE"
+    else
+        echo "export $VAR_NAME=\"$VAR_VALUE\"" >> "$BASHRC_FILE"
         ADDED_ENV="$ADDED_ENV $VAR_NAME"
     fi
+    export $VAR_NAME="$VAR_VALUE"
 }
 
 [ -z "$GITLAB_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_HOME"
@@ -89,20 +94,16 @@ if [ -n "$MISSING_ENV" ]; then
     for VAR in $MISSING_ENV; do
         case "$VAR" in
             GITLAB_HOME)
-                append_if_missing "GITLAB_HOME" "/srv/gitlab"
-                export GITLAB_HOME="/srv/gitlab"
+                append_or_update_bashrc "GITLAB_HOME" "${GITLAB_HOME:-/srv/gitlab}"
                 ;;
             GITLAB_RUNNER_HOME)
-                append_if_missing "GITLAB_RUNNER_HOME" "/srv/gitlab-runner"
-                export GITLAB_RUNNER_HOME="/srv/gitlab-runner"
+                append_or_update_bashrc "GITLAB_RUNNER_HOME" "${GITLAB_RUNNER_HOME:-/srv/gitlab-runner}"
                 ;;
             HOST_IP)
-                append_if_missing "HOST_IP" "$HOST_IP"
-                export HOST_IP="$HOST_IP"
+                append_or_update_bashrc "HOST_IP" "$HOST_IP"
                 ;;
             GITLAB_PORT)
-                append_if_missing "GITLAB_PORT" "$GITLAB_PORT"
-                export GITLAB_PORT="$GITLAB_PORT"
+                append_or_update_bashrc "GITLAB_PORT" "$GITLAB_PORT"
                 ;;
         esac
     done
@@ -163,7 +164,14 @@ else
     exit 1
 fi
 
-# Start the Compose stack
+# Write .env file for docker-compose
+# cat > .env <<EOF
+# GITLAB_HOME="$GITLAB_HOME"
+# GITLAB_RUNNER_HOME="$GITLAB_RUNNER_HOME"
+# HOST_IP="$HOST_IP"
+# GITLAB_PORT="$GITLAB_PORT"
+# EOF
+
 print_message "🚀 Bringing up the Docker Compose stack..." "$YELLOW"
 $COMPOSE_CMD up -d
 if [[ $? -eq 0 ]]; then
