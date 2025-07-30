@@ -1,0 +1,91 @@
+services:
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    container_name: gitlab
+    restart: always
+    hostname: "gitlab.local"
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://<IP_ADDRESS>:<PORT>' # Replace <IP_ADDRESS> and <PORT> with actual values OR if you have a domain, use 'http://your-domain.com'
+        gitlab_rails['gitlab_shell_ssh_port'] = 2222
+    ports:
+      - "8998:8998"
+      - "4430:443"
+      - "2222:22"
+    volumes:
+      - "$GITLAB_HOME/config:/etc/gitlab"
+      - "$GITLAB_HOME/logs:/var/log/gitlab"
+      - "$GITLAB_HOME/data:/var/opt/gitlab"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8998/-/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 10
+    networks:
+      - gitlab-net
+
+  gitlab-runner:
+    image: gitlab/gitlab-runner:latest
+    container_name: gitlab-runner
+    restart: always
+    depends_on:
+      gitlab:
+        condition: service_healthy
+    volumes:
+      - "$GITLAB_RUNNER_HOME/config:/etc/gitlab-runner"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "gitlab-runner"]
+      interval: 30s
+      retries: 5
+      start_period: 20s
+      timeout: 10s
+    networks:
+      - gitlab-net
+
+  patch-runner:
+    image: alpine:3.18
+    container_name: patch-runner
+    depends_on:
+      gitlab-runner:
+        condition: service_healthy
+    volumes:
+      - $GITLAB_RUNNER_HOME/config:/etc/gitlab-runner
+    entrypoint: ["sh", "-c"]
+    command: |
+    echo "🔧 Patching config.toml...";
+    export CONFIG=/etc/gitlab-runner/config.toml
+
+    # Ensure network_mode is set correctly
+    if grep -q '^\s*network_mode' "$CONFIG"; then
+      sed -i 's|^\s*network_mode\s*=.*|    network_mode = "gitlab-net"|' "$CONFIG"
+    else
+      sed -i '/\[runners.docker\]/a \    network_mode = "gitlab-net"' "$CONFIG"
+    fi
+
+    # Set memory limit if not set
+    if grep -q '^\s*memory' "$CONFIG"; then
+      sed -i 's|^\s*memory\s*=.*|    memory = "8g"|' "$CONFIG"
+    else
+      sed -i '/\[runners.docker\]/a \    memory = "8g"' "$CONFIG"
+    fi
+
+    # Set CPU limit if not set
+    if grep -q '^\s*cpus' "$CONFIG"; then
+      sed -i 's|^\s*cpus\s*=.*|    cpus = "4"|' "$CONFIG"
+    else
+      sed -i '/\[runners.docker\]/a \    cpus = "4"' "$CONFIG"
+    fi
+
+    echo "✅ Patch applied.";
+    exit 0;
+
+
+    restart: "no" # Prevents it from restarting
+    # This will make the container *automatically disappear*
+    labels:
+      - "auto-remove=true"
+
+networks:
+  gitlab-net:
+    external: true
