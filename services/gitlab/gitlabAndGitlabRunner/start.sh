@@ -71,28 +71,24 @@ ADDED_ENV=""
 
 # Safely update ~/.bashrc only as the user, not as root
 append_or_update_bashrc() {
-  VAR_NAME="$1"
-  VAR_VALUE="$2"
+  local VAR_NAME="$1"
+  local VAR_VALUE="$2"
+
   if [ "$EUID" -eq 0 ] && [ -n "$SUDO_USER" ]; then
-    # Use sudo -u to update the invoking user's bashrc
-    sudo -u "$SUDO_USER" bash -c '
-      BASHRC_FILE="$HOME/.bashrc"
-      TMPFILE=$(mktemp "${BASHRC_FILE}.XXXXXX")
-      grep -vE "^(export[[:space:]]+)?'$VAR_NAME'=" "$BASHRC_FILE" > "$TMPFILE" || true
-      mv "$TMPFILE" "$BASHRC_FILE"
-      printf "\nexport %s=\"%s\"\n" "$VAR_NAME" "$VAR_VALUE" >> "$BASHRC_FILE"
-    '
-    # Restore permissions in case root touched it
-    sudo chown "$SUDO_USER":"$SUDO_USER" "$INVOKING_HOME/.bashrc"
-    sudo chmod 644 "$INVOKING_HOME/.bashrc"
+    # As root: drop privileges to writing user so ownership stays intact
+    sudo -u "$INVOKING_USER" sh -c "
+      sed -i -E '/^(export[[:space:]]+)?${VAR_NAME}=/d' \"$BASHRC_FILE\"
+      printf '\nexport %s=\"%s\"\n' '${VAR_NAME}' '${VAR_VALUE}' >> \"$BASHRC_FILE\"
+    "
   else
-    TMPFILE=$(mktemp "${BASHRC_FILE}.XXXXXX")
-    grep -vE "^(export[[:space:]]+)?${VAR_NAME}=" "$BASHRC_FILE" > "$TMPFILE" || true
-    mv "$TMPFILE" "$BASHRC_FILE"
+    # Running as non-root or directly as the user
+    sed -i -E '/^(export[[:space:]]+)?'"$VAR_NAME"='/d' "$BASHRC_FILE"
     printf '\nexport %s="%s"\n' "$VAR_NAME" "$VAR_VALUE" >> "$BASHRC_FILE"
   fi
-  ADDED_ENV="$ADDED_ENV $VAR_NAME"
+
+  # 3) Export in the current shell
   export "$VAR_NAME"="$VAR_VALUE"
+  ADDED_ENV="$ADDED_ENV $VAR_NAME"
 }
 
 
