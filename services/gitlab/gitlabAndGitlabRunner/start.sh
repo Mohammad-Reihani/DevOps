@@ -20,20 +20,19 @@ if [ -z "$BASH_VERSION" ]; then exec bash "$0" "$@"; fi
 
 # Detect the invoking user's home and bashrc
 if [ "$SUDO_USER" ]; then
-    INVOKING_USER="$SUDO_USER"
+  INVOKING_USER="$SUDO_USER"
 else
-    INVOKING_USER="$USER"
+  INVOKING_USER="$USER"
 fi
-INVOKING_HOME=$(eval echo ~${INVOKING_USER})
+INVOKING_HOME=$(eval echo "~${INVOKING_USER}")
 BASHRC_FILE="$INVOKING_HOME/.bashrc"
 
-
-# Load env vars from invoking user's bashrc if running as root
 if [ "$EUID" -eq 0 ] && [ -f "$BASHRC_FILE" ]; then
-    set -a
-    . "$BASHRC_FILE"
-    set +a
+  set -a
+  . "$BASHRC_FILE"
+  set +a
 fi
+
 
 
 
@@ -71,15 +70,25 @@ ADDED_ENV=""
 
 # Ensure export in ~/.bashrc (update if exists, append if not, always export)
 append_or_update_bashrc() {
-    VAR_NAME="$1"
-    VAR_VALUE="$2"
-    # Remove any existing lines for this var (exported or not)
-    grep -v "^export $VAR_NAME=" "$BASHRC_FILE" | grep -v "^$VAR_NAME=" > "$BASHRC_FILE.tmp" || true
-    mv "$BASHRC_FILE.tmp" "$BASHRC_FILE"
-    echo "export $VAR_NAME=\"$VAR_VALUE\"" >> "$BASHRC_FILE"
-    ADDED_ENV="$ADDED_ENV $VAR_NAME"
-    export $VAR_NAME="$VAR_VALUE"
+  local VAR_NAME="$1"
+  local VAR_VALUE="$2"
+  local TMPFILE
+
+  # Use mktemp for safety
+  TMPFILE=$(mktemp "${BASHRC_FILE}.XXXXXX")
+
+  # Filter out any existing lines defining VAR_NAME (exported or not)
+  grep -vE "^(export[[:space:]]+)?${VAR_NAME}=" "$BASHRC_FILE" > "$TMPFILE" || true
+  mv "$TMPFILE" "$BASHRC_FILE"
+
+  # Append the new export
+  printf '\nexport %s="%s"\n' "$VAR_NAME" "$VAR_VALUE" >> "$BASHRC_FILE"
+
+  # Track and export in the current shell
+  ADDED_ENV="$ADDED_ENV $VAR_NAME"
+  export "$VAR_NAME"="$VAR_VALUE"
 }
+
 
 [ -z "$GITLAB_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_HOME"
 [ -z "$GITLAB_RUNNER_HOME" ] && MISSING_ENV="$MISSING_ENV GITLAB_RUNNER_HOME"
