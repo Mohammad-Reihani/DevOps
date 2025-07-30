@@ -36,7 +36,15 @@ If you look into the `docker-compose` there is a `patch-runner` its a lightweigh
 
 ## 4. register the gitlab runner
 
-First you need to login to your gitlab instance for the first time as root and `copy` the `registration token` found in `GitLab → Admin → CI/CD → Runners` on top right
+Before any action, test if your `gitlab` and `gitlab-runner` are in the same network but doing this:
+
+```bash
+sudo docker exec -it gitlab-runner curl http://gitlab:8998/
+```
+
+If you got something, you may move on.
+
+Now you need to login to your gitlab instance for the first time as root and `copy` the `registration token` found in `GitLab → Admin → CI/CD → Runners` on top right
 
 Note: default password for gitlab is in:
 

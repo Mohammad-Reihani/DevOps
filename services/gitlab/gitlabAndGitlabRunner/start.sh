@@ -191,12 +191,18 @@ else
     exit 1
 fi
 
-# Restart the GitLab Runner service
-print_message "🔧 Restarting GitLab Runner service..." "$YELLOW"
-docker exec gitlab-runner gitlab-runner restart
-if [[ $? -eq 0 ]]; then
-    print_message "✅ GitLab Runner service restarted successfully." "$GREEN"
-else
-    print_message "❌ Failed to restart GitLab Runner service." "$RED"
-    exit 1
-fi
+
+print_message "🎉 GitLab Runner patched successfully — no restart needed!" "$GREEN"
+print_message "🧘 Sit back and enjoy your CI/CD doing its magic..." "$CYAN"
+
+
+#! we no longer need the below code!
+# # Restart the GitLab Runner service
+# print_message "🔧 Restarting GitLab Runner to apply changes..." "$YELLOW"
+# docker restart gitlab-runner
+# if [[ $? -eq 0 ]]; then
+#     print_message "✅ GitLab Runner service restarted successfully." "$GREEN"
+# else
+#     print_message "❌ Failed to restart GitLab Runner service." "$RED"
+#     exit 1
+# fi
