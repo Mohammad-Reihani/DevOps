@@ -69,17 +69,15 @@ MISSING_ENV=""
 ADDED_ENV=""
 
 
-# Ensure export in ~/.bashrc (update if exists, append if not)
+# Ensure export in ~/.bashrc (update if exists, append if not, always export)
 append_or_update_bashrc() {
     VAR_NAME="$1"
     VAR_VALUE="$2"
-    if grep -q "^export $VAR_NAME=" "$BASHRC_FILE"; then
-        # Update existing
-        sed -i "s|^export $VAR_NAME=.*|export $VAR_NAME=\"$VAR_VALUE\"|" "$BASHRC_FILE"
-    else
-        echo "export $VAR_NAME=\"$VAR_VALUE\"" >> "$BASHRC_FILE"
-        ADDED_ENV="$ADDED_ENV $VAR_NAME"
-    fi
+    # Remove any existing lines for this var (exported or not)
+    grep -v "^export $VAR_NAME=" "$BASHRC_FILE" | grep -v "^$VAR_NAME=" > "$BASHRC_FILE.tmp" || true
+    mv "$BASHRC_FILE.tmp" "$BASHRC_FILE"
+    echo "export $VAR_NAME=\"$VAR_VALUE\"" >> "$BASHRC_FILE"
+    ADDED_ENV="$ADDED_ENV $VAR_NAME"
     export $VAR_NAME="$VAR_VALUE"
 }
 

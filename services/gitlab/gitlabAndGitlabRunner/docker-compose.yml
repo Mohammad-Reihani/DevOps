@@ -52,29 +52,29 @@ services:
     volumes:
       - "${GITLAB_RUNNER_HOME}/config:/etc/gitlab-runner"
     entrypoint: ["sh", "-c"]
-    command: -c |
+    command: |
       echo "🔧 Patching config.toml...";
       export CONFIG=/etc/gitlab-runner/config.toml
 
       # Ensure network_mode is set correctly
-      if grep -q '^\s*network_mode' "$CONFIG"; then
-        sed -i 's|^\s*network_mode\s*=.*|    network_mode = "gitlab-net"|' "$CONFIG"
+      if grep -q '^\s*network_mode' "$$CONFIG"; then
+        sed -i 's|^\s*network_mode\s*=.*|    network_mode = "gitlab-net"|' "$$CONFIG"
       else
-        sed -i '/\[runners.docker\]/a \    network_mode = "gitlab-net"' "$CONFIG"
+        sed -i '/\[runners.docker\]/a \    network_mode = "gitlab-net"' "$$CONFIG"
       fi
 
       # Set memory limit if not set
-      if grep -q '^\s*memory' "$CONFIG"; then
-        sed -i 's|^\s*memory\s*=.*|    memory = "8g"|' "$CONFIG"
+      if grep -q '^\s*memory' "$$CONFIG"; then
+        sed -i 's|^\s*memory\s*=.*|    memory = "8g"|' "$$CONFIG"
       else
-        sed -i '/\[runners.docker\]/a \    memory = "8g"' "$CONFIG"
+        sed -i '/\[runners.docker\]/a \    memory = "8g"' "$$CONFIG"
       fi
 
       # Set CPU limit if not set
-      if grep -q '^\s*cpus' "$CONFIG"; then
-        sed -i 's|^\s*cpus\s*=.*|    cpus = "4"|' "$CONFIG"
+      if grep -q '^\s*cpus' "$$CONFIG"; then
+        sed -i 's|^\s*cpus\s*=.*|    cpus = "4"|' "$$CONFIG"
       else
-        sed -i '/\[runners.docker\]/a \    cpus = "4"' "$CONFIG"
+        sed -i '/\[runners.docker\]/a \    cpus = "4"' "$$CONFIG"
       fi
 
       echo "✅ Patch applied.";
