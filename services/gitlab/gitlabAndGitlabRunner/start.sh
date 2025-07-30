@@ -68,23 +68,29 @@ MISSING_ENV=""
 ADDED_ENV=""
 
 
-# Ensure export in ~/.bashrc (update if exists, append if not, always export)
+
+# Safely update ~/.bashrc only as the user, not as root
 append_or_update_bashrc() {
-  local VAR_NAME="$1"
-  local VAR_VALUE="$2"
-  local TMPFILE
-
-  # Use mktemp for safety
-  TMPFILE=$(mktemp "${BASHRC_FILE}.XXXXXX")
-
-  # Filter out any existing lines defining VAR_NAME (exported or not)
-  grep -vE "^(export[[:space:]]+)?${VAR_NAME}=" "$BASHRC_FILE" > "$TMPFILE" || true
-  mv "$TMPFILE" "$BASHRC_FILE"
-
-  # Append the new export
-  printf '\nexport %s="%s"\n' "$VAR_NAME" "$VAR_VALUE" >> "$BASHRC_FILE"
-
-  # Track and export in the current shell
+  VAR_NAME="$1"
+  VAR_VALUE="$2"
+  if [ "$EUID" -eq 0 ] && [ -n "$SUDO_USER" ]; then
+    # Use sudo -u to update the invoking user's bashrc
+    sudo -u "$SUDO_USER" bash -c '
+      BASHRC_FILE="$HOME/.bashrc"
+      TMPFILE=$(mktemp "${BASHRC_FILE}.XXXXXX")
+      grep -vE "^(export[[:space:]]+)?'$VAR_NAME'=" "$BASHRC_FILE" > "$TMPFILE" || true
+      mv "$TMPFILE" "$BASHRC_FILE"
+      printf "\nexport %s=\"%s\"\n" "$VAR_NAME" "$VAR_VALUE" >> "$BASHRC_FILE"
+    '
+    # Restore permissions in case root touched it
+    sudo chown "$SUDO_USER":"$SUDO_USER" "$INVOKING_HOME/.bashrc"
+    sudo chmod 644 "$INVOKING_HOME/.bashrc"
+  else
+    TMPFILE=$(mktemp "${BASHRC_FILE}.XXXXXX")
+    grep -vE "^(export[[:space:]]+)?${VAR_NAME}=" "$BASHRC_FILE" > "$TMPFILE" || true
+    mv "$TMPFILE" "$BASHRC_FILE"
+    printf '\nexport %s="%s"\n' "$VAR_NAME" "$VAR_VALUE" >> "$BASHRC_FILE"
+  fi
   ADDED_ENV="$ADDED_ENV $VAR_NAME"
   export "$VAR_NAME"="$VAR_VALUE"
 }
@@ -171,12 +177,13 @@ else
     exit 1
 fi
 
-Write .env file for docker-compose
+
+# Write .env file for docker-compose
 cat > .env <<EOF
-GITLAB_HOME="$GITLAB_HOME"
-GITLAB_RUNNER_HOME="$GITLAB_RUNNER_HOME"
-HOST_IP="$HOST_IP"
-GITLAB_PORT="$GITLAB_PORT"
+GITLAB_HOME=$GITLAB_HOME
+GITLAB_RUNNER_HOME=$GITLAB_RUNNER_HOME
+HOST_IP=$HOST_IP
+GITLAB_PORT=$GITLAB_PORT
 EOF
 
 print_message "🚀 Bringing up the Docker Compose stack..." "$YELLOW"
