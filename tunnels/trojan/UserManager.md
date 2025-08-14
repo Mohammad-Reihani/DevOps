@@ -186,8 +186,10 @@ delete_client(){
 
   # remove password from config.json
   tmp=$(mktemp)
-  jq --arg p "$pwd" '( .password // [] ) | map(select(. != $p)) as $new | .password = $new' "$CONFIG_PATH" > "$tmp" && mv "$tmp" "$CONFIG_PATH"
+  jq --arg p "$pwd" '.password |= map(select(. != $p))' "$CONFIG_PATH" > "$tmp" && mv "$tmp" "$CONFIG_PATH"
   info "Removed password from $CONFIG_PATH (if it existed)"
+
+
 
   # remove from users map
   tmp2=$(mktemp)
