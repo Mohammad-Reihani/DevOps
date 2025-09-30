@@ -1,0 +1,29 @@
+services:
+  trojan-kidsafe:
+    build: .   # directory containing Dockerfile + start script
+    image: trojan-kidsafe-custom:latest
+    dns:
+      - 185.228.168.168
+      - 185.228.169.168
+    container_name: trojan-kidsafe
+    restart: unless-stopped
+    ports:
+      - "110:110/tcp"
+    cap_add:
+      - NET_ADMIN
+    volumes:
+      - /etc/trojan/kidsafe/config.json:/config/config.json:ro
+      - /opt/trojan/plain_http_response.html:/config/plain_http_response.html:ro
+      - /etc/letsencrypt/live/mydomain.com/fullchain.pem:/config/fullchain.pem:ro
+      - /etc/letsencrypt/live/mydomain.com/privkey.pem:/config/privkey.pem:ro
+      - ./blocklist.txt:/config/blocklist.txt:ro
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  default:
+    external:
+      name: trojan-net
